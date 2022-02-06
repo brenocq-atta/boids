@@ -8,6 +8,8 @@
 #include "boidComponent.h"
 #include "settingsComponent.h"
 #include <atta/componentSystem/components/transformComponent.h>
+#include <atta/componentSystem/components/relationshipComponent.h>
+#include <atta/componentSystem/components/meshComponent.h>
 #include <random>
 using namespace atta;
 
@@ -25,6 +27,7 @@ void BoidScript::update(Entity entity, float dt)
     force += collisionAvoidance(entity, neighbourVecs) * s->collisionAvoidanceFactor * 100.0f;
     force += velocityMatching(entity) * s->velocityMatchingFactor;
     force += flockCentering(entity, neighbourVecs) * s->flockCenteringFactor;
+    force += obstacleAvoidance(entity) * 100.0f;
 
     b->acceleration = force;
 }
@@ -105,4 +108,80 @@ vec2 BoidScript::getNeighbourVec(Entity entity, EntityId neighbour)
     float r = distribution(generator);
 
     return norm*(dist+r);
+}
+
+vec2 BoidScript::obstacleAvoidance(Entity entity)
+{
+    BoidComponent* b = entity.getComponent<BoidComponent>();
+    TransformComponent* t = entity.getComponent<TransformComponent>();
+    RelationshipComponent* obsr = ComponentManager::getEntityComponent<RelationshipComponent>(3);
+
+    vec2 avoidanceForce {};
+
+    // Deal with each obstacle
+    for(EntityId obstacle : obsr->getChildren())
+    {
+        MeshComponent* obsM = ComponentManager::getEntityComponent<MeshComponent>(obstacle);
+        TransformComponent* obsT = ComponentManager::getEntityComponent<TransformComponent>(obstacle);
+        switch(obsM->sid.getId())
+        {
+            case "meshes/disk.obj"_sid:
+                {
+                    // TODO only working with circles (not ellipsis)
+                    vec2 obsDir = vec2(obsT->position)-vec2(t->position);
+                    vec2 steering = normalize(normalize(b->velocity)-normalize(obsDir));
+                    float radius = obsT->scale.x;
+                    float dist = obsDir.length();
+
+                    if(dist > 0)
+                        avoidanceForce += steering * (radius/(dist*dist));
+                    break;
+                }
+            case "meshes/plane.obj"_sid:
+            case "meshes/cube.obj"_sid:
+                {
+                    // Cubes will be ignored, the walls are made of cubes but are handled as half space planes
+                    vec2 halfSpaceNormal {};
+                    float dist = 0.0f;
+                    if(obsT->position.x > 0)
+                    {
+                        halfSpaceNormal = vec2(-1, 0);
+                        dist = obsT->position.x - t->position.x;
+                    }
+                    else if(obsT->position.x < 0)
+                    {
+                        halfSpaceNormal = vec2(1, 0);
+                        dist = t->position.x - obsT->position.x;
+                    }
+                    else if(obsT->position.y > 0)
+                    {
+                        halfSpaceNormal = vec2(0, -1);
+                        dist = obsT->position.y - t->position.y;
+                    }
+                    else if(obsT->position.y < 0)
+                    {
+                        halfSpaceNormal = vec2(0, 1);
+                        dist = t->position.y - obsT->position.y;
+                    }
+    
+                    vec2 steering = normalize(normalize(vec2(b->velocity))-halfSpaceNormal);
+                    vec2 force {};
+                    if(dist > 0.5f)
+                        force = halfSpaceNormal / (dist*dist);
+                    else
+                        force = halfSpaceNormal * 1000.0f;
+
+                    if(entity.getCloneId() == 0)
+                        LOG_DEBUG("BOidScript", "Normal $0, force: $1, dist: $2", halfSpaceNormal, force, dist);
+
+                    avoidanceForce += force;
+                    break;
+                }
+            default:
+                LOG_WARN("BoidScript", "Trying to avoid unknown obstacle [w]$0[]", obsM->sid.getString());
+        }
+    }
+    
+    
+    return avoidanceForce;
 }

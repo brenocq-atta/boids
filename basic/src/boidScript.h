@@ -18,6 +18,7 @@ private:
     atta::vec2 collisionAvoidance(atta::Entity entity, const std::vector<atta::vec2>& neighbourVecs);
     atta::vec2 velocityMatching(atta::Entity entity);
     atta::vec2 flockCentering(atta::Entity entity, const std::vector<atta::vec2>& neighbourVecs);
+    atta::vec2 obstacleAvoidance(atta::Entity entity);
 
     atta::vec2 getNeighbourVec(atta::Entity entity, atta::EntityId neighbour);
 };

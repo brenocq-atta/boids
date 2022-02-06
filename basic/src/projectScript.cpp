@@ -77,7 +77,7 @@ void Project::onUpdateBefore(float)
 void Project::onUpdateAfter(float dt)
 {
     float step = 0.10f;
-    float maxAcc = 1.0;
+    float maxAcc = 3.0;
     float maxVel = 10;
 
     // Update positions, velocities and accelerations
@@ -143,6 +143,7 @@ void Project::mainParemeters()
         ImGui::Text("%s", names[i]);
 
         if(ImGui::Checkbox((std::string("###Active")+names[i]).c_str(), &active[i]))
+        {
             if(active[i] == false)
             {
                 lastVal[i] = *paramPtr[i];
@@ -152,6 +153,7 @@ void Project::mainParemeters()
             {
                 *paramPtr[i] = lastVal[i];
             }
+        }
 
         ImGui::SameLine(); 
         if(!active[i])
