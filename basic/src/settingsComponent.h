@@ -30,6 +30,9 @@ struct SettingsComponent final : public Component
 
     /// Flock centering factor
     float flockCenteringFactor;
+
+    /// Measurements noise standand deviation
+    float noise;
 }; 
 ATTA_REGISTER_COMPONENT(SettingsComponent);
 template<> ComponentDescription& TypedComponentRegistry<SettingsComponent>::getDescription();

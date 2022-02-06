@@ -25,6 +25,9 @@ public:
     void onUIRender() override;
 
 private:
+    void mainParemeters();
+    void boidParemeters();
+
     bool _running;
 };
 

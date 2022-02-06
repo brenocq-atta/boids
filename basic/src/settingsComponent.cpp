@@ -17,7 +17,8 @@ ComponentDescription& TypedComponentRegistry<SettingsComponent>::getDescription(
                 { AttributeType::FLOAT32, offsetof(SettingsComponent, viewExpoent), "viewExpoent" },
                 { AttributeType::FLOAT32, offsetof(SettingsComponent, collisionAvoidanceFactor), "collisionAvoidanceFactor" },
                 { AttributeType::FLOAT32, offsetof(SettingsComponent, velocityMatchingFactor), "velocityMatchingFactor" },
-                { AttributeType::FLOAT32, offsetof(SettingsComponent, flockCenteringFactor), "flockCenteringFactor" }
+                { AttributeType::FLOAT32, offsetof(SettingsComponent, flockCenteringFactor), "flockCenteringFactor" },
+                { AttributeType::FLOAT32, offsetof(SettingsComponent, noise), "noise" }
             },
             // Max instances
             1

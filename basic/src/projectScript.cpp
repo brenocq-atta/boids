@@ -9,6 +9,7 @@
 #include <atta/componentSystem/components/materialComponent.h>
 #include <atta/graphicsSystem/drawer.h>
 #include <imgui.h>
+#include <imgui_internal.h>// Disable items
 
 #include "projectScript.h"
 #include "boidComponent.h"
@@ -32,10 +33,15 @@ void Project::onStart()
     for(atta::EntityId boid : factory->getCloneIds())
     {
         atta::TransformComponent* t = atta::ComponentManager::getEntityComponent<atta::TransformComponent>(boid);
+        BoidComponent* b = atta::ComponentManager::getEntityComponent<BoidComponent>(boid);
 
         // Initialize each boid position
-        t->position.x = ((rand()%5000)/500.0f - 1.0f);
-        t->position.y = ((rand()%5000)/500.0f - 1.0f);
+        t->position.x = ((rand()%1000)/1000.0f - 0.5f)*10.0f;
+        t->position.y = ((rand()%1000)/1000.0f - 0.5f)*10.0f;
+
+        float rAngle = (rand()%1000)/1000.0f;
+        b->velocity.x = cos(rAngle);
+        b->velocity.y = sin(rAngle);
     }
 }
 
@@ -70,6 +76,10 @@ void Project::onUpdateBefore(float)
 
 void Project::onUpdateAfter(float dt)
 {
+    float step = 0.10f;
+    float maxAcc = 1.0;
+    float maxVel = 10;
+
     // Update positions, velocities and accelerations
     atta::Factory* factory = atta::ComponentManager::getPrototypeFactory(PROT_BOID_EID);
     for(atta::EntityId boid : factory->getCloneIds())
@@ -77,20 +87,22 @@ void Project::onUpdateAfter(float dt)
         atta::TransformComponent* t = atta::ComponentManager::getEntityComponent<atta::TransformComponent>(boid);
         BoidComponent* boidInfo = atta::ComponentManager::getEntityComponent<BoidComponent>(boid);
 
+        // Limit vectors
+        if(boidInfo->acceleration.length() > maxAcc)
+            boidInfo->acceleration = normalize(boidInfo->acceleration) * maxAcc;
+        if(boidInfo->velocity.length() > maxVel)
+            boidInfo->velocity = normalize(boidInfo->velocity) * maxVel;
+
         // Update velocity
-        boidInfo->velocity += boidInfo->acceleration;
+        boidInfo->velocity += boidInfo->acceleration*step;
+        boidInfo->velocity.normalize();
         boidInfo->acceleration = vec2(0.0f);
 
-        // Limit maximum velocity
-        float maxVelocity = 0.001f;
-        if(boidInfo->velocity.length() > maxVelocity)
-            boidInfo->velocity = normalize(boidInfo->velocity)*maxVelocity;
-
         // Apply velocity to boid
-        t->position += vec3(boidInfo->velocity, 0.0f);
+        t->position += vec3(boidInfo->velocity*step, 0.0f);
         if(boidInfo->velocity.length() > 0)
             t->orientation.rotationFromVectors( 
-                    normalize(vec3(boidInfo->velocity.x, boidInfo->velocity.y, 0.0f)), vec3(0, -1, 0));
+                    normalize(vec3(boidInfo->velocity, 0.0f)), vec3(0, -1, 0));
     }
 }
 
@@ -102,6 +114,69 @@ void Project::onAttaLoop()
 void Project::onUIRender()
 {
     ImGui::Begin("Configure");
+
+    mainParemeters();
+    ImGui::Separator();
+    boidParemeters();
     
     ImGui::End();
+}
+
+void Project::mainParemeters()
+{
+    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(0);
+    ImGui::Text("Main parameters");
+
+    ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+    float min = 0.0f;
+    float max = 5.0f;
+
+    const char* names[3] = {"Collision avoidance factor", "Velocity matching factor", "Flock centering factor"};
+    static bool active[3] = { true, true, true };
+    static float lastVal[3] = { s->collisionAvoidanceFactor, s->velocityMatchingFactor, s->flockCenteringFactor };
+    float* paramPtr[3] = { &s->collisionAvoidanceFactor, &s->velocityMatchingFactor, &s->flockCenteringFactor };
+
+    // Render checkbox and sliders
+    for(unsigned i = 0; i < 3; i++)
+    {
+        ImGui::Text("%s", names[i]);
+
+        if(ImGui::Checkbox((std::string("###Active")+names[i]).c_str(), &active[i]))
+            if(active[i] == false)
+            {
+                lastVal[i] = *paramPtr[i];
+                *paramPtr[i] = 0.0f;
+            }
+            else
+            {
+                *paramPtr[i] = lastVal[i];
+            }
+
+        ImGui::SameLine(); 
+        if(!active[i])
+            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+
+        ImGui::SliderScalar((std::string("###Slider")+names[i]).c_str(), ImGuiDataType_Float, paramPtr[i], &min, &max, "%.6f", ImGuiSliderFlags_None);
+
+        if(!active[i])
+            ImGui::PopItemFlag();
+    }
+}
+
+void Project::boidParemeters()
+{
+    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(0);
+    ImGui::Text("Boid parameters");
+
+    ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+    ImGui::Text("View Radius");
+    ImGui::DragFloat("###DragViewRadisu", &s->viewRadius, 0.05f, 0.0f, 100.0f, "%.2f", ImGuiSliderFlags_None);
+
+    ImGui::Text("View Expoent");
+    ImGui::DragFloat("###DragViewExpoent", &s->viewExpoent, 0.05f, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_None);
+
+    ImGui::Text("Noise");
+    ImGui::DragFloat("###DragNoise", &s->noise, 0.01f, 0.0f, 5.0f, "%.2f", ImGuiSliderFlags_None);
 }

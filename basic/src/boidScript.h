@@ -15,9 +15,11 @@ public:
     void update(atta::Entity entity, float dt) override;
 
 private:
-    atta::vec2 collisionAvoidance(atta::Entity entity);
+    atta::vec2 collisionAvoidance(atta::Entity entity, const std::vector<atta::vec2>& neighbourVecs);
     atta::vec2 velocityMatching(atta::Entity entity);
-    atta::vec2 flockCentering(atta::Entity entity);
+    atta::vec2 flockCentering(atta::Entity entity, const std::vector<atta::vec2>& neighbourVecs);
+
+    atta::vec2 getNeighbourVec(atta::Entity entity, atta::EntityId neighbour);
 };
 
 ATTA_REGISTER_SCRIPT(BoidScript)
