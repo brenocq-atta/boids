@@ -15,6 +15,7 @@ jobs:
         with:
           repository: brenocq/atta
           ref: publish-project
+          path: atta
 
         # Google Storage setup 
       - id: 'auth'
@@ -30,9 +31,13 @@ jobs:
 
         # Project web build
       - name: Build web build
+        working-directory: atta
         run: |
           pwd
           ls
+          ./scripts/build.sh -h
+          ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids/basic/basic.atta
+          ls bin
 
         # Update Google Storage
       - name: Update Google Storage
