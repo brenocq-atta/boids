@@ -42,11 +42,12 @@ jobs:
         # Project web build
       - name: Build web build
         working-directory: atta
-        run: |
-          pwd
-          ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids/basic/basic.atta
-          ls bin
+        run: ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids/basic/basic.atta
 
         # Update Google Storage
       - name: Update Google Storage
-        run: echo 'Update google storage'
+        working-directory: atta
+        run: |
+          echo 'Updating google storage'
+          gsutil cp build/bin/* ${{secrets.GCP_PATH}}
+          echo 'Done!'
