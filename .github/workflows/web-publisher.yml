@@ -10,6 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+        # Google Storage setup 
       - id: 'auth'
         uses: google-github-actions/auth@v0
         with:
@@ -17,20 +18,25 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
+   
+      - name: Use gcloud CLI
+        run: gcloud info
 
-      - name: Clone Atta
+        # Clone atta and build web
+      - name: Clone Atta and build web build
         uses: actions/checkout@v3
         with:
-          name: brenocq/atta
+          repository: brenocq/atta
+          ref: publish-project
+        run: |
+          pwd
+          ls .
 
       - name: Build web build
         run: |
           pwd
           ls .
-          ls ..
 
+        # Update Google Storage
       - name: Update Google Storage
         run: echo 'Update google storage'
-   
-      - name: Use gcloud CLI
-        run: gcloud info
