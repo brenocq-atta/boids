@@ -17,7 +17,15 @@ jobs:
           ref: publish-project
           path: atta
         # Setup emscripten
-      - uses: mymindstorm/setup-emsdk@v11
+      - uses: mymindstorm/setup-emsdk@v9
+
+        # Install dependencies`
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install cmake assimp-utils libbullet-dev
+          cmake --version
+          gcc --version
 
         # Google Storage setup 
       - id: 'auth'
@@ -36,8 +44,6 @@ jobs:
         working-directory: atta
         run: |
           pwd
-          ls
-          ./scripts/build.sh -h
           ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids/basic/basic.atta
           ls bin
 
