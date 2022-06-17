@@ -7,6 +7,15 @@ jobs:
   web-publisher:
     name: Web publisher
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+          path: "/basic",
+          project-file: "basic.atta"
+        }
+        
     steps:
         # Clone project 
       - uses: actions/checkout@v3
@@ -19,7 +28,7 @@ jobs:
         # Setup emscripten
       - uses: mymindstorm/setup-emsdk@v9
 
-        # Install dependencies`
+        # Install dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -35,19 +44,10 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
-   
-      - name: Use gcloud CLI
-        run: gcloud info
 
         # Project web build
-      - name: Build web build
-        working-directory: atta
-        run: ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids/basic/basic.atta
-
-        # Update Google Storage
-      - name: Update Google Storage
+      - name: Build and update basic.atta
         working-directory: atta
         run: |
-          echo 'Updating google storage'
-          gsutil cp build/bin/* ${{secrets.GCP_PATH}}
-          echo 'Done!'
+          ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids${{matrix.path}}/${{matrix.project-file}}
+          gsutil cp build/bin/* gs://${{secrets.GCP_PATH}}${{matrix.path}}/

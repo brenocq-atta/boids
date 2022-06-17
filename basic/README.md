@@ -1,8 +1,9 @@
----
+<!--
 title: Boids Basic
 description: Basic implementation of 2D boids with obstacle avoidance
 image: https://storage.googleapis.com/atta-images/docs/boids/basic/boids-basic.gif
----
+build: https://storage.googleapis.com/atta-repos/boids/basic
+-->
 # Boids Basic
 
 <div align="center">
