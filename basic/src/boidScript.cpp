@@ -13,9 +13,12 @@
 #include <random>
 using namespace atta;
 
+#define OBSTACLES_EID 2// Obstacles entity id
+#define SETTINGS_EID 5// Settings entity id
+
 void BoidScript::update(Entity entity, float dt)
 {
-    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
     BoidComponent* b = entity.getComponent<BoidComponent>();
     TransformComponent* t = entity.getComponent<TransformComponent>();
 
@@ -24,17 +27,17 @@ void BoidScript::update(Entity entity, float dt)
         neighbourVecs.push_back(getNeighbourVec(entity, neighbour));
 
     vec2 force {};
-    force += collisionAvoidance(entity, neighbourVecs) * s->collisionAvoidanceFactor * 100.0f;
+    force += collisionAvoidance(entity, neighbourVecs) * s->collisionAvoidanceFactor;
     force += velocityMatching(entity) * s->velocityMatchingFactor;
     force += flockCentering(entity, neighbourVecs) * s->flockCenteringFactor;
-    force += obstacleAvoidance(entity) * 100.0f;
+    force += obstacleAvoidance(entity) * 30.0f;
 
     b->acceleration = force;
 }
 
 vec2 BoidScript::collisionAvoidance(Entity entity, const std::vector<vec2>& neighbourVecs)
 {
-    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
     BoidComponent* b = entity.getComponent<BoidComponent>();
     TransformComponent* t = entity.getComponent<TransformComponent>();
 
@@ -56,7 +59,7 @@ vec2 BoidScript::collisionAvoidance(Entity entity, const std::vector<vec2>& neig
 
 vec2 BoidScript::velocityMatching(Entity entity)
 {
-    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
     BoidComponent* b = entity.getComponent<BoidComponent>();
 
     std::default_random_engine generator;
@@ -80,7 +83,7 @@ vec2 BoidScript::velocityMatching(Entity entity)
 
 vec2 BoidScript::flockCentering(Entity entity, const std::vector<vec2>& neighbourVecs)
 {
-    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
     TransformComponent* t = entity.getComponent<TransformComponent>();
 
     // Average neighbours positions
@@ -95,7 +98,7 @@ vec2 BoidScript::flockCentering(Entity entity, const std::vector<vec2>& neighbou
 
 vec2 BoidScript::getNeighbourVec(Entity entity, EntityId neighbour)
 {
-    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
     TransformComponent* t = entity.getComponent<TransformComponent>();
     TransformComponent* tn = ComponentManager::getEntityComponent<TransformComponent>(neighbour);
 
@@ -114,7 +117,7 @@ vec2 BoidScript::obstacleAvoidance(Entity entity)
 {
     BoidComponent* b = entity.getComponent<BoidComponent>();
     TransformComponent* t = entity.getComponent<TransformComponent>();
-    RelationshipComponent* obsr = ComponentManager::getEntityComponent<RelationshipComponent>(3);
+    RelationshipComponent* obsr = ComponentManager::getEntityComponent<RelationshipComponent>(OBSTACLES_EID);
 
     vec2 avoidanceForce {};
 
@@ -171,8 +174,8 @@ vec2 BoidScript::obstacleAvoidance(Entity entity)
                     else
                         force = halfSpaceNormal * 1000.0f;
 
-                    if(entity.getCloneId() == 0)
-                        LOG_DEBUG("BOidScript", "Normal $0, force: $1, dist: $2", halfSpaceNormal, force, dist);
+                    //if(entity.getCloneId() == 0)
+                    //    LOG_DEBUG("BOidScript", "Normal $0, force: $1, dist: $2", halfSpaceNormal, force, dist);
 
                     avoidanceForce += force;
                     break;

@@ -7,7 +7,6 @@
 #include <atta/componentSystem/componentManager.h>
 #include <atta/componentSystem/components/transformComponent.h>
 #include <atta/componentSystem/components/materialComponent.h>
-#include <atta/graphicsSystem/drawer.h>
 #include <imgui.h>
 #include <imgui_internal.h>// Disable items
 
@@ -15,8 +14,8 @@
 #include "boidComponent.h"
 #include "settingsComponent.h"
 
-#define PROT_BOID_EID 2// Prototype boid entity id
-#define PROT_OBST_EID 4// Prototype obstacle entity id
+#define PROT_BOID_EID 1// Prototype boid entity id
+#define SETTINGS_EID 5// Settings entity id
 
 Project::Project():
     _running(false)
@@ -52,7 +51,7 @@ void Project::onStop()
 
 void Project::onUpdateBefore(float)
 {
-    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
 
     // Update neighbors
     atta::Factory* factory = atta::ComponentManager::getPrototypeFactory(PROT_BOID_EID);
@@ -76,7 +75,6 @@ void Project::onUpdateBefore(float)
 
 void Project::onUpdateAfter(float dt)
 {
-    float step = 0.10f;
     float maxAcc = 3.0;
     float maxVel = 10;
 
@@ -94,12 +92,12 @@ void Project::onUpdateAfter(float dt)
             boidInfo->velocity = normalize(boidInfo->velocity) * maxVel;
 
         // Update velocity
-        boidInfo->velocity += boidInfo->acceleration*step;
+        boidInfo->velocity += boidInfo->acceleration*dt;
         boidInfo->velocity.normalize();
         boidInfo->acceleration = vec2(0.0f);
 
         // Apply velocity to boid
-        t->position += vec3(boidInfo->velocity*step, 0.0f);
+        t->position += vec3(boidInfo->velocity*dt, 0.0f);
         if(boidInfo->velocity.length() > 0)
             t->orientation.rotationFromVectors( 
                     normalize(vec3(boidInfo->velocity, 0.0f)), vec3(0, -1, 0));
@@ -124,7 +122,7 @@ void Project::onUIRender()
 
 void Project::mainParemeters()
 {
-    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
     ImGui::Text("Main parameters");
 
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -168,7 +166,7 @@ void Project::mainParemeters()
 
 void Project::boidParemeters()
 {
-    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(0);
+    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
     ImGui::Text("Boid parameters");
 
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
