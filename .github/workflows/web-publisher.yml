@@ -22,7 +22,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           name: brenocq/atta
-          ref: '7aa9a5e128d8142a7cd65001278658ba526fda64'
 
       - name: Build web build
         run: |
