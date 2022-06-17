@@ -15,8 +15,23 @@ jobs:
         with:
           credentials_json: '${{secrets.GCP_CREDENTIALS}}'
 
-      - name: 'Set up Cloud SDK'
+      - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
+
+      - name: Clone Atta
+        uses: actions/checkout@v3
+        with:
+          name: brenocq/atta
+          ref: '7aa9a5e128d8142a7cd65001278658ba526fda64'
+
+      - name: Build web build
+        run: |
+          pwd
+          ls .
+          ls ..
+
+      - name: Update Google Storage
+        run: echo 'Update google storage'
    
-      - name: 'Use gcloud CLI'
+      - name: Use gcloud CLI
         run: gcloud info
