@@ -8,7 +8,13 @@ jobs:
     name: Web publisher
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+        # Clone project 
+      - uses: actions/checkout@v3
+        # Clone atta
+      - uses: actions/checkout@v3
+        with:
+          repository: brenocq/atta
+          ref: publish-project
 
         # Google Storage setup 
       - id: 'auth'
@@ -22,20 +28,11 @@ jobs:
       - name: Use gcloud CLI
         run: gcloud info
 
-        # Clone atta and build web
-      - name: Clone Atta and build web build
-        uses: actions/checkout@v3
-        with:
-          repository: brenocq/atta
-          ref: publish-project
-        run: |
-          pwd
-          ls .
-
+        # Project web build
       - name: Build web build
         run: |
           pwd
-          ls .
+          ls
 
         # Update Google Storage
       - name: Update Google Storage
