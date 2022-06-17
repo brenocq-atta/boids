@@ -1,0 +1,22 @@
+name: Web publisher
+on:
+  push:
+    branches:
+      - main
+jobs:
+  web-publisher:
+    name: Web publisher
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: 'auth'
+        uses: google-github-actions/auth@v0
+        with:
+          credentials_json: '${{secrets.GCP_CREDENTIALS}}'
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@master
+   
+      - name: 'Use gcloud CLI'
+        run: gcloud info
