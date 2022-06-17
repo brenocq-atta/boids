@@ -16,6 +16,8 @@ jobs:
           repository: brenocq/atta
           ref: publish-project
           path: atta
+        # Setup emscripten
+      - uses: mymindstorm/setup-emsdk@v11
 
         # Google Storage setup 
       - id: 'auth'
