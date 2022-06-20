@@ -7,7 +7,6 @@
 #include <atta/componentSystem/componentManager.h>
 #include <atta/componentSystem/components/transformComponent.h>
 #include <atta/componentSystem/components/materialComponent.h>
-#include <atta/graphicsSystem/graphicsManager.h>
 #include <imgui.h>
 #include <imgui_internal.h>// Disable items
 //#include <implot.h>
@@ -40,10 +39,10 @@ void Project::onStart()
     initBoids();
 
     // TODO assign image to background and update with force vector
-    atta::Image::CreateInfo info {};
-    info.width = 100;
-    info.height = 100;
-    std::shared_ptr<atta::Image> _bgImage = atta::GraphicsManager::create<atta::Image>(info);
+    //atta::Image::CreateInfo info {};
+    //info.width = 100;
+    //info.height = 100;
+    //std::shared_ptr<atta::Image> _bgImage = atta::GraphicsManager::create<atta::Image>(info);
 }
 
 void Project::initBoids()

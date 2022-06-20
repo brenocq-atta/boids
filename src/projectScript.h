@@ -31,7 +31,7 @@ private:
     void updateWalls();
 
     bool _running;
-    std::shared_ptr<atta::Image> _bgImage;
+    //std::shared_ptr<atta::Image> _bgImage;
 };
 
 ATTA_REGISTER_PROJECT_SCRIPT(Project)
