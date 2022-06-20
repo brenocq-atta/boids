@@ -14,7 +14,6 @@ ComponentDescription& TypedComponentRegistry<SettingsComponent>::getDescription(
             "Settings",
             {
                 { AttributeType::FLOAT32, offsetof(SettingsComponent, viewRadius), "viewRadius" },
-                { AttributeType::FLOAT32, offsetof(SettingsComponent, viewExpoent), "viewExpoent" },
                 { AttributeType::FLOAT32, offsetof(SettingsComponent, collisionAvoidanceFactor), "collisionAvoidanceFactor" },
                 { AttributeType::FLOAT32, offsetof(SettingsComponent, velocityMatchingFactor), "velocityMatchingFactor" },
                 { AttributeType::FLOAT32, offsetof(SettingsComponent, flockCenteringFactor), "flockCenteringFactor" },

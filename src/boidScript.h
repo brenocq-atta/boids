@@ -14,6 +14,8 @@ class BoidScript : public atta::Script
 public:
     void update(atta::Entity entity, float dt) override;
 
+    static atta::vec2 worldForceField(atta::vec2 position);
+
 private:
     atta::vec2 collisionAvoidance(atta::Entity entity, const std::vector<atta::vec2>& neighbourVecs);
     atta::vec2 velocityMatching(atta::Entity entity);

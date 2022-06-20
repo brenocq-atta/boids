@@ -16,6 +16,12 @@ using namespace atta;
 #define OBSTACLES_EID 2// Obstacles entity id
 #define SETTINGS_EID 5// Settings entity id
 
+// Walls
+#define TOP_WALL_EID 6
+#define BOTTOM_WALL_EID 7
+#define RIGHT_WALL_EID 8
+#define LEFT_WALL_EID 9
+
 void BoidScript::update(Entity entity, float dt)
 {
     SettingsComponent* s = ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
@@ -113,15 +119,44 @@ vec2 BoidScript::getNeighbourVec(Entity entity, EntityId neighbour)
     return norm*(dist+r);
 }
 
-vec2 BoidScript::obstacleAvoidance(Entity entity)
+atta::vec2 BoidScript::worldForceField(atta::vec2 position)
 {
-    BoidComponent* b = entity.getComponent<BoidComponent>();
-    TransformComponent* t = entity.getComponent<TransformComponent>();
+    // Walls
+    static TransformComponent* tw = ComponentManager::getEntityComponent<TransformComponent>(TOP_WALL_EID);
+    static TransformComponent* bw = ComponentManager::getEntityComponent<TransformComponent>(BOTTOM_WALL_EID);
+    static TransformComponent* lw = ComponentManager::getEntityComponent<TransformComponent>(LEFT_WALL_EID);
+    static TransformComponent* rw = ComponentManager::getEntityComponent<TransformComponent>(RIGHT_WALL_EID);
+
+    vec2 forceField;
+
+    // Deal with fixed walls
+    if(tw)// Top wall
+    {
+        float dist = tw->position.y - position.y;
+        vec2 normal(0, -1);
+        forceField += dist > 0.05f ? normal/(dist*dist) : normal*1000.0f;
+    }
+    if(bw)// Bottom wall
+    {
+        float dist = position.y - bw->position.y;
+        vec2 normal(0, 1);
+        forceField += dist > 0.05f ? normal/(dist*dist) : normal*1000.0f;
+    }
+    if(lw)// Left wall
+    {
+        float dist = position.x - lw->position.x;
+        vec2 normal(1, 0);
+        forceField += dist > 0.05f ? normal/(dist*dist) : normal*1000.0f;
+    }
+    if(rw)// Right wall
+    {
+        float dist = rw->position.x - position.x;
+        vec2 normal(-1, 0);
+        forceField += dist > 0.05f ? normal/(dist*dist) : normal*1000.0f;
+    }
+
+    // Deal with dynamic obstacle
     RelationshipComponent* obsr = ComponentManager::getEntityComponent<RelationshipComponent>(OBSTACLES_EID);
-
-    vec2 avoidanceForce {};
-
-    // Deal with each obstacle
     for(EntityId obstacle : obsr->getChildren())
     {
         MeshComponent* obsM = ComponentManager::getEntityComponent<MeshComponent>(obstacle);
@@ -129,62 +164,31 @@ vec2 BoidScript::obstacleAvoidance(Entity entity)
         switch(obsM->sid.getId())
         {
             case "meshes/disk.obj"_sid:
+            case "meshes/sphere.obj"_sid:
                 {
-                    // TODO only working with circles (not ellipsis)
-                    vec2 obsDir = vec2(obsT->position)-vec2(t->position);
-                    vec2 steering = normalize(normalize(b->velocity)-normalize(obsDir));
+                    vec2 distDir = vec2(position) - vec2(obsT->position);
                     float radius = obsT->scale.x;
-                    float dist = obsDir.length();
-
-                    if(dist > 0)
-                        avoidanceForce += steering * (radius/(dist*dist));
+                    forceField += 0.4f * (normalize(distDir) * radius)/distDir.squareLength();
                     break;
                 }
             case "meshes/plane.obj"_sid:
-            case "meshes/cube.obj"_sid:
-                {
-                    // Cubes will be ignored, the walls are made of cubes but are handled as half space planes
-                    vec2 halfSpaceNormal {};
-                    float dist = 0.0f;
-                    if(obsT->position.x > 0)
-                    {
-                        halfSpaceNormal = vec2(-1, 0);
-                        dist = obsT->position.x - t->position.x;
-                    }
-                    else if(obsT->position.x < 0)
-                    {
-                        halfSpaceNormal = vec2(1, 0);
-                        dist = t->position.x - obsT->position.x;
-                    }
-                    else if(obsT->position.y > 0)
-                    {
-                        halfSpaceNormal = vec2(0, -1);
-                        dist = obsT->position.y - t->position.y;
-                    }
-                    else if(obsT->position.y < 0)
-                    {
-                        halfSpaceNormal = vec2(0, 1);
-                        dist = t->position.y - obsT->position.y;
-                    }
-    
-                    vec2 steering = normalize(normalize(vec2(b->velocity))-halfSpaceNormal);
-                    vec2 force {};
-                    if(dist > 0.5f)
-                        force = halfSpaceNormal / (dist*dist);
-                    else
-                        force = halfSpaceNormal * 1000.0f;
-
-                    //if(entity.getCloneId() == 0)
-                    //    LOG_DEBUG("BOidScript", "Normal $0, force: $1, dist: $2", halfSpaceNormal, force, dist);
-
-                    avoidanceForce += force;
-                    break;
-                }
+            case "meshes/box.obj"_sid:
+                break;
             default:
                 LOG_WARN("BoidScript", "Trying to avoid unknown obstacle [w]$0[]", obsM->sid.getString());
         }
     }
-    
-    
-    return avoidanceForce;
+    return forceField;
+}
+
+vec2 BoidScript::obstacleAvoidance(Entity entity)
+{
+    // Boid info
+    BoidComponent* b = entity.getComponent<BoidComponent>();
+    TransformComponent* t = entity.getComponent<TransformComponent>();
+
+    vec2 forceField = worldForceField(vec2(t->position));
+    vec2 steering = normalize(normalize(forceField) - normalize(b->velocity));
+
+    return forceField;
 }

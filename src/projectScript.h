@@ -25,10 +25,13 @@ public:
     void onUIRender() override;
 
 private:
+    void initBoids();
     void mainParemeters();
     void boidParemeters();
+    void updateWalls();
 
     bool _running;
+    std::shared_ptr<atta::Image> _bgImage;
 };
 
 ATTA_REGISTER_PROJECT_SCRIPT(Project)

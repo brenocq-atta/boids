@@ -1,12 +1,13 @@
 <!--
 title: Boids
-description: Multiple implementations of boids
-image: https://storage.googleapis.com/atta-images/docs/boids/basic/boids-basic.gif
+description: Basic implementation of 2D boids with obstacle avoidance
+image: https://storage.googleapis.com/atta-images/docs/boids/boids-basic.gif
+build: https://storage.googleapis.com/atta-repos/boids
 -->
 # Boids
 
 <div align="center">
-  <img src="https://storage.googleapis.com/atta-images/docs/boids/basic/boids-basic.gif" height="400">
+  <img src="https://storage.googleapis.com/atta-images/docs/boids/boids-basic.gif" height="400">
 </div>
 
 This repository will contain different implementations of boids. For now, only the basic 2D implementation has been done.
@@ -38,12 +39,31 @@ Agents move to the center of their neighbors.
 
 Each agent is represented as a vector, and the each rule generate a vector that is summed to the agent's vector.
 
-## How to run
-Install atta following the instructions [here](https://github.com/brenocq/atta).
+## Implementation
+Implementation of 2D boids with obstacle avoidance. Each boid is represented as a 2D vector. The force is given by:
+
 ```
-  git clone https://github.com/brenocq-atta/boids
-  atta ./basic/basic.atta
+Force = collisionAvoidance * collisionAvoidanceFactor + 
+        velocityMatching * velocityMatchingFactor + 
+        flockCentering * flockCenteringFactor + 
+        obstacleAvoidance
 ```
+
+The following parameters can be changed from the UI: 
+ - **collisionAvoidanceFactor**: How strong the collision avoidance will be. Can be used to adjust how close each agent will be from each other
+ - **velocityMatchingFactor**: How strong the collision avoidance will be. If set to zero, agents will follow different directions.
+ - **flockCenteringFactor**: How strong the flock centering will be. If set to zero, agents will always avoid each other.
+ - **viewRadius**: How big is the agent view radius. Boids inside the view radius are considered neighbors.
+ - **noise**: Add random noise to neighbors readings.
+
+**Obs:** Obstacle avoidance was implemented to avoid two types of objects:
+ - Walls (4 predefined entities)
+ - Disks (entities with mesh component set as disk)
+
+### Features
+- You can move the walls while the simulation is running.
+- Turn on world force field plot (obstacle avoidance force).
+- Inspect position/velocity plot of selected boid.
 
 ## References
 - Craig Reynolds. **Flocks, herds and schools: A distributed behavioral model.** SIGGRAPH 87.

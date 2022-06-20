@@ -16,12 +16,6 @@ struct SettingsComponent final : public Component
     /** Maximum radius to view neighbors **/
     float viewRadius;
 
-    /// Boid sensitivity to neighbors
-    /** The neighbor has less effect the further away it is. It uses the inverse square model
-     * to calculate how much effect
-     */
-    float viewExpoent;
-
     /// Collision avoidance factor
     float collisionAvoidanceFactor;
 

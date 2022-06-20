@@ -5,15 +5,15 @@ on:
       - main
 jobs:
   web-publisher:
-    name: Web publisher - ${{matrix.config.path}}/${{matrix.config.project-file}}
+    name: Web publisher - ${{matrix.config.project-file}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         config:
         - {
-          path: "/basic",
-          project-file: "basic.atta"
+          bucket-path: 'atta-repos/boids/'
+          project-file: '/boids.atta'
         }
         
     steps:
@@ -49,5 +49,5 @@ jobs:
       - name: Build and update basic.atta
         working-directory: atta
         run: |
-          ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids${{matrix.config.path}}/${{matrix.config.project-file}}
-          gsutil cp build/bin/* gs://${{secrets.GCP_PATH}}${{matrix.config.path}}/
+          ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids${{matrix.config.project-file}}
+          gsutil cp build/bin/* gs://${{matrix.config.bucket-path}}

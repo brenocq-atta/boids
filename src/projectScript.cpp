@@ -7,8 +7,10 @@
 #include <atta/componentSystem/componentManager.h>
 #include <atta/componentSystem/components/transformComponent.h>
 #include <atta/componentSystem/components/materialComponent.h>
+#include <atta/graphicsSystem/graphicsManager.h>
 #include <imgui.h>
 #include <imgui_internal.h>// Disable items
+//#include <implot.h>
 
 #include "projectScript.h"
 #include "boidComponent.h"
@@ -16,6 +18,13 @@
 
 #define PROT_BOID_EID 1// Prototype boid entity id
 #define SETTINGS_EID 5// Settings entity id
+
+// Walls
+#define TOP_WALL_EID 6
+#define BOTTOM_WALL_EID 7
+#define RIGHT_WALL_EID 8
+#define LEFT_WALL_EID 9
+#define BACKGROUND_EID 4
 
 Project::Project():
     _running(false)
@@ -27,16 +36,36 @@ void Project::onStart()
 {
     _running = true;
 
-    srand(31415);
+    srand(42);
+    initBoids();
+
+    // TODO assign image to background and update with force vector
+    atta::Image::CreateInfo info {};
+    info.width = 100;
+    info.height = 100;
+    std::shared_ptr<atta::Image> _bgImage = atta::GraphicsManager::create<atta::Image>(info);
+}
+
+void Project::initBoids()
+{
+    // Initialize boids randomly
     atta::Factory* factory = atta::ComponentManager::getPrototypeFactory(PROT_BOID_EID);
     for(atta::EntityId boid : factory->getCloneIds())
     {
         atta::TransformComponent* t = atta::ComponentManager::getEntityComponent<atta::TransformComponent>(boid);
         BoidComponent* b = atta::ComponentManager::getEntityComponent<BoidComponent>(boid);
 
+        // Calculate size and offset
+        vec3& tp = ComponentManager::getEntityComponent<TransformComponent>(TOP_WALL_EID)->position;
+        vec3& bp = ComponentManager::getEntityComponent<TransformComponent>(BOTTOM_WALL_EID)->position;
+        vec3& lp = ComponentManager::getEntityComponent<TransformComponent>(LEFT_WALL_EID)->position;
+        vec3& rp = ComponentManager::getEntityComponent<TransformComponent>(RIGHT_WALL_EID)->position;
+        vec2 offset((rp.x+lp.x)/2.0f, (tp.y+bp.y)/2.0f);
+        vec2 size(rp.x-lp.x, tp.y-bp.y);
+
         // Initialize each boid position
-        t->position.x = ((rand()%1000)/1000.0f - 0.5f)*10.0f;
-        t->position.y = ((rand()%1000)/1000.0f - 0.5f)*10.0f;
+        t->position.x = ((rand()%1000)/1000.0f - 0.5f)*size.x+offset.x;
+        t->position.y = ((rand()%1000)/1000.0f - 0.5f)*size.y+offset.y;
 
         float rAngle = (rand()%1000)/1000.0f;
         b->velocity.x = cos(rAngle);
@@ -53,6 +82,7 @@ void Project::onUpdateBefore(float)
 {
     SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
 
+    updateWalls();
     // Update neighbors
     atta::Factory* factory = atta::ComponentManager::getPrototypeFactory(PROT_BOID_EID);
     for(atta::EntityId boid : factory->getCloneIds())
@@ -112,17 +142,36 @@ void Project::onAttaLoop()
 void Project::onUIRender()
 {
     ImGui::Begin("Configure");
+    {
+        mainParemeters();
+        ImGui::Separator();
+        boidParemeters();
+    }
+    ImGui::End();
 
-    mainParemeters();
-    ImGui::Separator();
-    boidParemeters();
-    
+    ImGui::Begin("Inspect agent");
+    {
+        // TODO inspect agent
+        //std::vector<int> xs = {0, 1, 2, 3, 4};
+        //std::vector<int> ys = {0, 1, 0, 1, 0};
+        //if(ImPlot::BeginPlot("##Position"))
+        //{
+        //    ImPlot::PlotLine("X", xs.data(), ys.data(), xs.size());
+        //    ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+        //    ImPlot::PlotLine("X", xs.data(), ys.data(), xs.size());
+        //    ImPlot::EndPlot();
+        //}
+    }
     ImGui::End();
 }
 
 void Project::mainParemeters()
 {
     SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
+
+    if(ImGui::Button("Reset"))
+        initBoids();
+
     ImGui::Text("Main parameters");
 
     ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -174,9 +223,51 @@ void Project::boidParemeters()
     ImGui::Text("View Radius");
     ImGui::DragFloat("###DragViewRadisu", &s->viewRadius, 0.05f, 0.0f, 100.0f, "%.2f", ImGuiSliderFlags_None);
 
-    ImGui::Text("View Expoent");
-    ImGui::DragFloat("###DragViewExpoent", &s->viewExpoent, 0.05f, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_None);
-
     ImGui::Text("Noise");
     ImGui::DragFloat("###DragNoise", &s->noise, 0.01f, 0.0f, 5.0f, "%.2f", ImGuiSliderFlags_None);
+
+    ImGui::Text("Tip: You can move the walls");
+    ImGui::Text("Tip: You can add more circles");
+}
+
+void Project::updateWalls()
+{
+    static TransformComponent* t = ComponentManager::getEntityComponent<TransformComponent>(TOP_WALL_EID);
+    static TransformComponent* b = ComponentManager::getEntityComponent<TransformComponent>(BOTTOM_WALL_EID);
+    static TransformComponent* l = ComponentManager::getEntityComponent<TransformComponent>(LEFT_WALL_EID);
+    static TransformComponent* r = ComponentManager::getEntityComponent<TransformComponent>(RIGHT_WALL_EID);
+    static TransformComponent* bg = ComponentManager::getEntityComponent<TransformComponent>(BACKGROUND_EID);
+    
+    if(t && b && l && r && bg)
+    {
+        // Positions
+        vec3& tp = t->position;
+        vec3& bp = b->position;
+        vec3& lp = l->position;
+        vec3& rp = r->position;
+        vec3& bgp = bg->position;
+
+        // Scales
+        vec3& ts = t->scale;
+        vec3& bs = b->scale;
+        vec3& ls = l->scale;
+        vec3& rs = r->scale;
+        vec3& bgs = bg->scale;
+
+        // Offsets
+        vec2 offset((rp.x+lp.x)/2.0f, (tp.y+bp.y)/2.0f);
+        vec2 size(rp.x-lp.x, tp.y-bp.y);
+
+        // Update background position/scale
+        bgp = vec3(offset, -1.0f);
+        bgs = vec3(size, 1.0f);
+
+        // Update wall positions
+        tp.x = bp.x = offset.x;
+        rp.y = lp.y = offset.y;
+
+        // Update wall scales
+        ts.x = bs.x = size.x;
+        rs.y = ls.y = size.y;
+    }
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(boids-basic VERSION 1.0.0 LANGUAGES CXX)
+project(boids VERSION 1.0.0 LANGUAGES CXX)
 find_package(atta 0.0.3.4 REQUIRED)
 
 # Create project script target
