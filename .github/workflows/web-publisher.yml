@@ -12,7 +12,7 @@ jobs:
       matrix:
         config:
         - {
-          bucket-path: 'atta-repos/boids/'
+          bucket-path: 'atta-repos/boids/',
           project-file: '/boids.atta'
         }
         
