@@ -4,262 +4,149 @@
 // Date: 2022-01-29
 // By Breno Cunha Queiroz
 //--------------------------------------------------
-#include <atta/componentSystem/componentManager.h>
-#include <atta/componentSystem/components/transformComponent.h>
-#include <atta/componentSystem/components/materialComponent.h>
-#include <imgui.h>
-#include <imgui_internal.h>// Disable items
-//#include <implot.h>
-
 #include "projectScript.h"
 #include "boidComponent.h"
-#include "settingsComponent.h"
+#include "common.h"
+#include "forceField.h"
+#include <atta/component/components/material.h>
+#include <atta/component/components/transform.h>
+#include <atta/component/components/prototype.h>
+#include <atta/component/interface.h>
+#include <atta/resource/interface.h>
 
-#define PROT_BOID_EID 1// Prototype boid entity id
-#define SETTINGS_EID 5// Settings entity id
+namespace scr = atta::script;
+namespace rsc = atta::resource;
 
-// Walls
-#define TOP_WALL_EID 6
-#define BOTTOM_WALL_EID 7
-#define RIGHT_WALL_EID 8
-#define LEFT_WALL_EID 9
-#define BACKGROUND_EID 4
+Project::Project() : _running(false), _bgImage(nullptr) {}
 
-Project::Project():
-    _running(false)
-{
+void Project::onLoad() {
+    if (!_bgImage) {
+        // Create image
+        rsc::Image::CreateInfo info{};
+        info.width = 100;
+        info.height = 100;
+        info.format = rsc::Image::Format::RGBA8;
+        _bgImage = rsc::create<rsc::Image>("background.png", info);
 
+        // Set image to all white
+        uint8_t* data = _bgImage->getData();
+        for (unsigned i = 0; i < info.width * info.height * 4; i++)
+            data[i] = 255;
+        _bgImage->update();
+    }
 }
 
-void Project::onStart()
-{
+void Project::onStart() {
     _running = true;
-
-    srand(42);
+    srand(42);// Repeatable simulations
     initBoids();
-
-    // TODO assign image to background and update with force vector
-    //atta::Image::CreateInfo info {};
-    //info.width = 100;
-    //info.height = 100;
-    //std::shared_ptr<atta::Image> _bgImage = atta::GraphicsManager::create<atta::Image>(info);
 }
 
-void Project::initBoids()
-{
+void Project::initBoids() {
     // Initialize boids randomly
-    atta::Factory* factory = atta::ComponentManager::getPrototypeFactory(PROT_BOID_EID);
-    for(atta::EntityId boid : factory->getCloneIds())
-    {
-        atta::TransformComponent* t = atta::ComponentManager::getEntityComponent<atta::TransformComponent>(boid);
-        BoidComponent* b = atta::ComponentManager::getEntityComponent<BoidComponent>(boid);
+    for (cmp::Entity boid : cmp::getFactory(boidPrototype)->getClones()) {
+        cmp::Transform* t = boid.get<cmp::Transform>();
+        BoidComponent* b = boid.get<BoidComponent>();
 
         // Calculate size and offset
-        vec3& tp = ComponentManager::getEntityComponent<TransformComponent>(TOP_WALL_EID)->position;
-        vec3& bp = ComponentManager::getEntityComponent<TransformComponent>(BOTTOM_WALL_EID)->position;
-        vec3& lp = ComponentManager::getEntityComponent<TransformComponent>(LEFT_WALL_EID)->position;
-        vec3& rp = ComponentManager::getEntityComponent<TransformComponent>(RIGHT_WALL_EID)->position;
-        vec2 offset((rp.x+lp.x)/2.0f, (tp.y+bp.y)/2.0f);
-        vec2 size(rp.x-lp.x, tp.y-bp.y);
+        atta::vec3& tp = topWall.get<cmp::Transform>()->position;
+        atta::vec3& bp = bottomWall.get<cmp::Transform>()->position;
+        atta::vec3& lp = leftWall.get<cmp::Transform>()->position;
+        atta::vec3& rp = rightWall.get<cmp::Transform>()->position;
+        atta::vec2 offset((rp.x + lp.x) / 2.0f, (tp.y + bp.y) / 2.0f);
+        atta::vec2 size(rp.x - lp.x, tp.y - bp.y);
 
         // Initialize each boid position
-        t->position.x = ((rand()%1000)/1000.0f - 0.5f)*size.x+offset.x;
-        t->position.y = ((rand()%1000)/1000.0f - 0.5f)*size.y+offset.y;
+        t->position.x = ((rand() % 1000) / 1000.0f - 0.5f) * size.x + offset.x;
+        t->position.y = ((rand() % 1000) / 1000.0f - 0.5f) * size.y + offset.y;
 
-        float rAngle = (rand()%1000)/1000.0f;
+        float rAngle = (rand() % 1000) / 1000.0f;
         b->velocity.x = cos(rAngle);
         b->velocity.y = sin(rAngle);
     }
 }
 
-void Project::onStop()
-{
-    _running = false;
-}
+void Project::onStop() { _running = false; }
 
-void Project::onUpdateBefore(float)
-{
-    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
-
+void Project::onUpdateBefore(float) {
     updateWalls();
+    updateBackground();
+
     // Update neighbors
-    atta::Factory* factory = atta::ComponentManager::getPrototypeFactory(PROT_BOID_EID);
-    for(atta::EntityId boid : factory->getCloneIds())
-    {
-        atta::TransformComponent* t = atta::ComponentManager::getEntityComponent<atta::TransformComponent>(boid);
-        BoidComponent* boidInfo = atta::ComponentManager::getEntityComponent<BoidComponent>(boid);
+    for (cmp::Entity boid : cmp::getFactory(boidPrototype)->getClones()) {
+        cmp::Transform* t = boid.get<cmp::Transform>();
+        BoidComponent* boidInfo = boid.get<BoidComponent>();
         boidInfo->neighbors.clear();
 
-        for(atta::EntityId other : factory->getCloneIds())
-        {
-            if(other == boid) continue;
+        // For each other boid -> O(n^2)
+        for (cmp::Entity other : cmp::getFactory(boidPrototype)->getClones()) {
+            if (boid == other)
+                continue;
 
             // Test if other is a neighbor
-            atta::TransformComponent* ot = atta::ComponentManager::getEntityComponent<atta::TransformComponent>(other);
-            if((vec2(ot->position)-vec2(t->position)).length() <= s->viewRadius)
+            cmp::Transform* ot = other.get<cmp::Transform>();
+            if ((atta::vec2(ot->position) - atta::vec2(t->position)).length() <= settings.get<SettingsComponent>()->viewRadius)
                 boidInfo->neighbors.push_back(other);
         }
     }
 }
 
-void Project::onUpdateAfter(float dt)
-{
-    float maxAcc = 3.0;
-    float maxVel = 10;
+void Project::onUpdateAfter(float dt) {
+    const float maxAcc = 3.0;
+    const float maxVel = 10;
 
     // Update positions, velocities and accelerations
-    atta::Factory* factory = atta::ComponentManager::getPrototypeFactory(PROT_BOID_EID);
-    for(atta::EntityId boid : factory->getCloneIds())
-    {
-        atta::TransformComponent* t = atta::ComponentManager::getEntityComponent<atta::TransformComponent>(boid);
-        BoidComponent* boidInfo = atta::ComponentManager::getEntityComponent<BoidComponent>(boid);
+    for (cmp::Entity boid : cmp::getFactory(boidPrototype)->getClones()) {
+        cmp::Transform* t = boid.get<cmp::Transform>();
+        BoidComponent* boidInfo = boid.get<BoidComponent>();
 
         // Limit vectors
-        if(boidInfo->acceleration.length() > maxAcc)
-            boidInfo->acceleration = normalize(boidInfo->acceleration) * maxAcc;
-        if(boidInfo->velocity.length() > maxVel)
-            boidInfo->velocity = normalize(boidInfo->velocity) * maxVel;
+        if (boidInfo->acceleration.length() > maxAcc)
+            boidInfo->acceleration = atta::normalize(boidInfo->acceleration) * maxAcc;
+        if (boidInfo->velocity.length() > maxVel)
+            boidInfo->velocity = atta::normalize(boidInfo->velocity) * maxVel;
 
         // Update velocity
-        boidInfo->velocity += boidInfo->acceleration*dt;
+        boidInfo->velocity += boidInfo->acceleration * dt;
         boidInfo->velocity.normalize();
-        boidInfo->acceleration = vec2(0.0f);
+        boidInfo->acceleration = atta::vec2(0.0f);
 
         // Apply velocity to boid
-        t->position += vec3(boidInfo->velocity*dt, 0.0f);
-        if(boidInfo->velocity.length() > 0)
-            t->orientation.rotationFromVectors( 
-                    normalize(vec3(boidInfo->velocity, 0.0f)), vec3(0, -1, 0));
+        t->position += atta::vec3(boidInfo->velocity * dt, 0.0f);
+        if (boidInfo->velocity.length() > 0)
+            t->orientation.rotationFromVectors(atta::normalize(atta::vec3(boidInfo->velocity, 0.0f)), atta::vec3(0, -1, 0));
     }
 }
 
-void Project::onAttaLoop()
-{
+void Project::updateWalls() {
+    static cmp::Transform* t = topWall.get<cmp::Transform>();
+    static cmp::Transform* b = bottomWall.get<cmp::Transform>();
+    static cmp::Transform* l = leftWall.get<cmp::Transform>();
+    static cmp::Transform* r = rightWall.get<cmp::Transform>();
+    static cmp::Transform* bg = background.get<cmp::Transform>();
 
-}
-
-void Project::onUIRender()
-{
-    ImGui::Begin("Configure");
-    {
-        mainParemeters();
-        ImGui::Separator();
-        boidParemeters();
-    }
-    ImGui::End();
-
-    ImGui::Begin("Inspect agent");
-    {
-        // TODO inspect agent
-        //std::vector<int> xs = {0, 1, 2, 3, 4};
-        //std::vector<int> ys = {0, 1, 0, 1, 0};
-        //if(ImPlot::BeginPlot("##Position"))
-        //{
-        //    ImPlot::PlotLine("X", xs.data(), ys.data(), xs.size());
-        //    ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
-        //    ImPlot::PlotLine("X", xs.data(), ys.data(), xs.size());
-        //    ImPlot::EndPlot();
-        //}
-    }
-    ImGui::End();
-}
-
-void Project::mainParemeters()
-{
-    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
-
-    if(ImGui::Button("Reset"))
-        initBoids();
-
-    ImGui::Text("Main parameters");
-
-    ImGui::Dummy(ImVec2(0.0f, 10.0f));
-
-    float min = 0.0f;
-    float max = 5.0f;
-
-    const char* names[3] = {"Collision avoidance factor", "Velocity matching factor", "Flock centering factor"};
-    static bool active[3] = { true, true, true };
-    static float lastVal[3] = { s->collisionAvoidanceFactor, s->velocityMatchingFactor, s->flockCenteringFactor };
-    float* paramPtr[3] = { &s->collisionAvoidanceFactor, &s->velocityMatchingFactor, &s->flockCenteringFactor };
-
-    // Render checkbox and sliders
-    for(unsigned i = 0; i < 3; i++)
-    {
-        ImGui::Text("%s", names[i]);
-
-        if(ImGui::Checkbox((std::string("###Active")+names[i]).c_str(), &active[i]))
-        {
-            if(active[i] == false)
-            {
-                lastVal[i] = *paramPtr[i];
-                *paramPtr[i] = 0.0f;
-            }
-            else
-            {
-                *paramPtr[i] = lastVal[i];
-            }
-        }
-
-        ImGui::SameLine(); 
-        if(!active[i])
-            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-
-        ImGui::SliderScalar((std::string("###Slider")+names[i]).c_str(), ImGuiDataType_Float, paramPtr[i], &min, &max, "%.6f", ImGuiSliderFlags_None);
-
-        if(!active[i])
-            ImGui::PopItemFlag();
-    }
-}
-
-void Project::boidParemeters()
-{
-    SettingsComponent* s = atta::ComponentManager::getEntityComponent<SettingsComponent>(SETTINGS_EID);
-    ImGui::Text("Boid parameters");
-
-    ImGui::Dummy(ImVec2(0.0f, 10.0f));
-
-    ImGui::Text("View Radius");
-    ImGui::DragFloat("###DragViewRadisu", &s->viewRadius, 0.05f, 0.0f, 100.0f, "%.2f", ImGuiSliderFlags_None);
-
-    ImGui::Text("Noise");
-    ImGui::DragFloat("###DragNoise", &s->noise, 0.01f, 0.0f, 5.0f, "%.2f", ImGuiSliderFlags_None);
-
-    ImGui::Text("Tip: You can move the walls");
-    ImGui::Text("Tip: You can add more circles");
-}
-
-void Project::updateWalls()
-{
-    static TransformComponent* t = ComponentManager::getEntityComponent<TransformComponent>(TOP_WALL_EID);
-    static TransformComponent* b = ComponentManager::getEntityComponent<TransformComponent>(BOTTOM_WALL_EID);
-    static TransformComponent* l = ComponentManager::getEntityComponent<TransformComponent>(LEFT_WALL_EID);
-    static TransformComponent* r = ComponentManager::getEntityComponent<TransformComponent>(RIGHT_WALL_EID);
-    static TransformComponent* bg = ComponentManager::getEntityComponent<TransformComponent>(BACKGROUND_EID);
-    
-    if(t && b && l && r && bg)
-    {
+    if (t && b && l && r && bg) {
         // Positions
-        vec3& tp = t->position;
-        vec3& bp = b->position;
-        vec3& lp = l->position;
-        vec3& rp = r->position;
-        vec3& bgp = bg->position;
+        atta::vec3& tp = t->position;
+        atta::vec3& bp = b->position;
+        atta::vec3& lp = l->position;
+        atta::vec3& rp = r->position;
+        atta::vec3& bgp = bg->position;
 
         // Scales
-        vec3& ts = t->scale;
-        vec3& bs = b->scale;
-        vec3& ls = l->scale;
-        vec3& rs = r->scale;
-        vec3& bgs = bg->scale;
+        atta::vec3& ts = t->scale;
+        atta::vec3& bs = b->scale;
+        atta::vec3& ls = l->scale;
+        atta::vec3& rs = r->scale;
+        atta::vec3& bgs = bg->scale;
 
         // Offsets
-        vec2 offset((rp.x+lp.x)/2.0f, (tp.y+bp.y)/2.0f);
-        vec2 size(rp.x-lp.x, tp.y-bp.y);
+        atta::vec2 offset((rp.x + lp.x) / 2.0f, (tp.y + bp.y) / 2.0f);
+        atta::vec2 size(rp.x - lp.x, tp.y - bp.y);
 
         // Update background position/scale
-        bgp = vec3(offset, -1.0f);
-        bgs = vec3(size, 1.0f);
+        bgp = atta::vec3(offset, -1.0f);
+        bgs = atta::vec3(size, 1.0f);
 
         // Update wall positions
         tp.x = bp.x = offset.x;
@@ -270,3 +157,43 @@ void Project::updateWalls()
         rs.y = ls.y = size.y;
     }
 }
+
+void Project::updateBackground() {
+    if (!_bgImage)
+        return;
+
+    static cmp::Transform* bg = background.get<cmp::Transform>();
+    float relW = 5;
+    float relH = 5;
+    uint32_t width = bg->scale.x * relW;
+    uint32_t height = bg->scale.y * relH;
+
+    // Resize image if necessary
+    if (width != _bgImage->getWidth() || height != _bgImage->getHeight())
+        _bgImage->resize(width, height);
+
+    // Change image color
+    uint8_t* data = _bgImage->getData();
+    for (int i = 0; i < width; i++)
+        for (int j = 0; j < height; j++) {
+            atta::vec2 start{bg->scale.x / 2, bg->scale.y / 2};
+            atta::vec2 pos = atta::vec2(bg->position) - start + atta::vec2((i + 0.5f) / relW, (j + 0.5f) / relH);
+            atta::vec2 force = getForceField(pos);
+            float scale = atta::length(force);
+            if (scale > 0)
+                scale = (log(scale) + 2.0f) / 3.0f;
+            if (scale < 0)
+                scale = 0;
+            if (scale > 1)
+                scale = 1;
+
+            unsigned index = (i + (height - 1 - j) * width) * 4;
+            data[index + 0] = 255 * scale;
+            data[index + 1] = 255 * scale;
+            data[index + 2] = 255 * scale;
+            data[index + 3] = 255;
+        }
+    _bgImage->update();
+}
+
+#include "projectScriptUI.cpp"

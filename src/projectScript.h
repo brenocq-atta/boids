@@ -7,33 +7,37 @@
 #ifndef PROJECT_SCRIPT_H
 #define PROJECT_SCRIPT_H
 #include <atta/pch.h>
-#include <atta/scriptSystem/projectScript.h>
+#include <atta/resource/resources/image.h>
+#include <atta/script/projectScript.h>
 
-class Project : public atta::ProjectScript
-{
-public:
+namespace scr = atta::script;
+namespace rsc = atta::resource;
+
+class Project : public scr::ProjectScript {
+  public:
     Project();
 
     //---------- Simulation ----------//
-	void onStart() override;
-	void onStop() override;
-	void onUpdateBefore(float) override;
-	void onUpdateAfter(float dt) override;
-    void onAttaLoop() override;
+    void onLoad() override;
+    void onStart() override;
+    void onStop() override;
+    void onUpdateBefore(float) override;
+    void onUpdateAfter(float dt) override;
 
     //---------- UI ----------//
     void onUIRender() override;
 
-private:
+  private:
     void initBoids();
     void mainParemeters();
     void boidParemeters();
     void updateWalls();
+    void updateBackground();
 
     bool _running;
-    //std::shared_ptr<atta::Image> _bgImage;
+    rsc::Image* _bgImage;
 };
 
 ATTA_REGISTER_PROJECT_SCRIPT(Project)
 
-#endif// PROJECT_SCRIPT_H
+#endif // PROJECT_SCRIPT_H

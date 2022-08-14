@@ -1,17 +1,17 @@
 //--------------------------------------------------
 // Boids Basic
-// settingsComponent.h    
+// settingsComponent.h
 // Date: 2022-01-29
-// By Breno Cunha Queiroz  
+// By Breno Cunha Queiroz
 //--------------------------------------------------
 #ifndef SETTINGS_COMPONENT_H
 #define SETTINGS_COMPONENT_H
+#include <atta/component/interface.h>
 #include <atta/pch.h>
-#include <atta/componentSystem/componentManager.h>
-using namespace atta;
 
-struct SettingsComponent final : public Component
-{  
+namespace cmp = atta::component;
+
+struct SettingsComponent final : public cmp::Component {
     /// Boid view radius
     /** Maximum radius to view neighbors **/
     float viewRadius;
@@ -27,8 +27,9 @@ struct SettingsComponent final : public Component
 
     /// Measurements noise standand deviation
     float noise;
-}; 
+};
 ATTA_REGISTER_COMPONENT(SettingsComponent);
-template<> ComponentDescription& TypedComponentRegistry<SettingsComponent>::getDescription();
+template <>
+cmp::ComponentDescription& cmp::TypedComponentRegistry<SettingsComponent>::getDescription();
 
-#endif// SETTINGS_COMPONENT_H
+#endif // SETTINGS_COMPONENT_H
