@@ -13,10 +13,13 @@
 #include <atta/component/components/relationship.h>
 #include <atta/component/components/transform.h>
 #include <atta/component/interface.h>
+#include <atta/graphics/drawer.h>
+#include <atta/graphics/interface.h>
 #include <atta/resource/interface.h>
 
 namespace scr = atta::script;
 namespace rsc = atta::resource;
+namespace gfx = atta::graphics;
 
 Project::Project() : _running(false), _bgImage(nullptr) {}
 
@@ -67,7 +70,10 @@ void Project::initBoids() {
     }
 }
 
-void Project::onStop() { _running = false; }
+void Project::onStop() {
+    _running = false;
+    gfx::Drawer::clear<gfx::Drawer::Line>("boidView");
+}
 
 void Project::onUpdateBefore(float) {
     updateWalls();
@@ -78,6 +84,7 @@ void Project::onUpdateBefore(float) {
         cmp::Transform* t = boid.get<cmp::Transform>();
         BoidComponent* boidInfo = boid.get<BoidComponent>();
         boidInfo->neighbors.clear();
+        boidInfo->acceleration = atta::vec2(0.0f);
 
         // For each other boid -> O(n^2)
         for (cmp::Entity other : cmp::getFactory(boidPrototype)->getClones()) {
@@ -110,7 +117,6 @@ void Project::onUpdateAfter(float dt) {
         // Update velocity
         boidInfo->velocity += boidInfo->acceleration * dt;
         boidInfo->velocity.normalize();
-        boidInfo->acceleration = atta::vec2(0.0f);
 
         // Apply velocity to boid
         t->position += atta::vec3(boidInfo->velocity * dt, 0.0f);
@@ -163,25 +169,19 @@ void getHeatMapColor(float value, float* red, float* green, float* blue) {
     // Thanks to https://www.andrewnoske.com/wiki/Code_-_heatmaps_and_color_gradients
     const int NUM_COLORS = 4;
     static float color[NUM_COLORS][3] = {{0, 0, 1}, {0, 1, 0}, {1, 1, 0}, {1, 0, 0}};
-    // A static array of 4 colors:  (blue,   green,  yellow,  red) using {r,g,b} for each.
-
-    int idx1;               // |-- Our desired color will be between these two indexes in "color".
-    int idx2;               // |
-    float fractBetween = 0; // Fraction between "idx1" and "idx2" where our value is.
-
-    if (value <= 0) {
+    int idx1;
+    int idx2;
+    float fractBetween = 0;
+    if (value <= 0)
         idx1 = idx2 = 0;
-    } // accounts for an input <=0
-    else if (value >= 1) {
+    else if (value >= 1)
         idx1 = idx2 = NUM_COLORS - 1;
-    } // accounts for an input >=0
     else {
-        value = value * (NUM_COLORS - 1);   // Will multiply value by 3.
-        idx1 = floor(value);                // Our desired color will be after this index.
-        idx2 = idx1 + 1;                    // ... and before this index (inclusive).
-        fractBetween = value - float(idx1); // Distance between the two indexes (0-1).
+        value = value * (NUM_COLORS - 1);
+        idx1 = floor(value);
+        idx2 = idx1 + 1;
+        fractBetween = value - float(idx1);
     }
-
     *red = (color[idx2][0] - color[idx1][0]) * fractBetween + color[idx1][0];
     *green = (color[idx2][1] - color[idx1][1]) * fractBetween + color[idx1][1];
     *blue = (color[idx2][2] - color[idx1][2]) * fractBetween + color[idx1][2];
@@ -199,8 +199,7 @@ void Project::updateBackground() {
     bool shouldUpdate = false;
 
     // Resize image if necessary
-    if (width != _bgImage->getWidth() || height != _bgImage->getHeight())
-    {
+    if (width != _bgImage->getWidth() || height != _bgImage->getHeight()) {
         shouldUpdate = true;
         _bgImage->resize(width, height);
     }
@@ -233,7 +232,7 @@ void Project::updateBackground() {
                 atta::vec2 pos = atta::vec2(bg->position) - start + atta::vec2((i + 0.5f) / relW, (j + 0.5f) / relH);
                 atta::vec2 force = getForceField(pos);
 
-                float value = log(log(atta::length(force) + 1)*2+1);
+                float value = log(log(atta::length(force) + 1) * 2 + 1);
                 if (value > 1)
                     value = 1;
                 float r, g, b;

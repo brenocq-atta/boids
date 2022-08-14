@@ -29,10 +29,13 @@ class Project : public scr::ProjectScript {
 
   private:
     void initBoids();
-    void mainParemeters();
-    void boidParemeters();
     void updateWalls();
     void updateBackground();
+
+    // UI
+    void mainParemeters();
+    void boidParemeters();
+    void boidInspect();
 
     bool _running;
     rsc::Image* _bgImage;
