@@ -9,8 +9,9 @@
 #include "common.h"
 #include "forceField.h"
 #include <atta/component/components/material.h>
-#include <atta/component/components/transform.h>
 #include <atta/component/components/prototype.h>
+#include <atta/component/components/relationship.h>
+#include <atta/component/components/transform.h>
 #include <atta/component/interface.h>
 #include <atta/resource/interface.h>
 
@@ -38,7 +39,7 @@ void Project::onLoad() {
 
 void Project::onStart() {
     _running = true;
-    srand(42);// Repeatable simulations
+    srand(42); // Repeatable simulations
     initBoids();
 }
 
@@ -158,42 +159,94 @@ void Project::updateWalls() {
     }
 }
 
+void getHeatMapColor(float value, float* red, float* green, float* blue) {
+    // Thanks to https://www.andrewnoske.com/wiki/Code_-_heatmaps_and_color_gradients
+    const int NUM_COLORS = 4;
+    static float color[NUM_COLORS][3] = {{0, 0, 1}, {0, 1, 0}, {1, 1, 0}, {1, 0, 0}};
+    // A static array of 4 colors:  (blue,   green,  yellow,  red) using {r,g,b} for each.
+
+    int idx1;               // |-- Our desired color will be between these two indexes in "color".
+    int idx2;               // |
+    float fractBetween = 0; // Fraction between "idx1" and "idx2" where our value is.
+
+    if (value <= 0) {
+        idx1 = idx2 = 0;
+    } // accounts for an input <=0
+    else if (value >= 1) {
+        idx1 = idx2 = NUM_COLORS - 1;
+    } // accounts for an input >=0
+    else {
+        value = value * (NUM_COLORS - 1);   // Will multiply value by 3.
+        idx1 = floor(value);                // Our desired color will be after this index.
+        idx2 = idx1 + 1;                    // ... and before this index (inclusive).
+        fractBetween = value - float(idx1); // Distance between the two indexes (0-1).
+    }
+
+    *red = (color[idx2][0] - color[idx1][0]) * fractBetween + color[idx1][0];
+    *green = (color[idx2][1] - color[idx1][1]) * fractBetween + color[idx1][1];
+    *blue = (color[idx2][2] - color[idx1][2]) * fractBetween + color[idx1][2];
+}
+
 void Project::updateBackground() {
     if (!_bgImage)
         return;
 
     static cmp::Transform* bg = background.get<cmp::Transform>();
-    float relW = 5;
-    float relH = 5;
+    float relW = 30;
+    float relH = 30;
     uint32_t width = bg->scale.x * relW;
     uint32_t height = bg->scale.y * relH;
+    bool shouldUpdate = false;
 
     // Resize image if necessary
     if (width != _bgImage->getWidth() || height != _bgImage->getHeight())
+    {
+        shouldUpdate = true;
         _bgImage->resize(width, height);
+    }
 
-    // Change image color
-    uint8_t* data = _bgImage->getData();
-    for (int i = 0; i < width; i++)
-        for (int j = 0; j < height; j++) {
-            atta::vec2 start{bg->scale.x / 2, bg->scale.y / 2};
-            atta::vec2 pos = atta::vec2(bg->position) - start + atta::vec2((i + 0.5f) / relW, (j + 0.5f) / relH);
-            atta::vec2 force = getForceField(pos);
-            float scale = atta::length(force);
-            if (scale > 0)
-                scale = (log(scale) + 2.0f) / 3.0f;
-            if (scale < 0)
-                scale = 0;
-            if (scale > 1)
-                scale = 1;
-
-            unsigned index = (i + (height - 1 - j) * width) * 4;
-            data[index + 0] = 255 * scale;
-            data[index + 1] = 255 * scale;
-            data[index + 2] = 255 * scale;
-            data[index + 3] = 255;
+    // Check if some obstacle was moved
+    static std::vector<cmp::Transform> lastTransforms;
+    lastTransforms.resize(obstacles.get<cmp::Relationship>()->getChildren().size());
+    unsigned i = 0;
+    for (cmp::Entity obstacle : obstacles.get<cmp::Relationship>()->getChildren()) {
+        cmp::Transform* t = obstacle.get<cmp::Transform>();
+        cmp::Transform& lt = lastTransforms[i];
+        if (lt.position != t->position || lt.scale != t->scale) {
+            shouldUpdate = true;
+            break;
         }
-    _bgImage->update();
+        i++;
+    }
+    i = 0;
+    for (cmp::Entity obstacle : obstacles.get<cmp::Relationship>()->getChildren()) {
+        lastTransforms[i] = *(obstacle.get<cmp::Transform>());
+        i++;
+    }
+
+    // Update curve level for force field if necessary
+    if (shouldUpdate) {
+        uint8_t* data = _bgImage->getData();
+        for (int i = 0; i < width; i++)
+            for (int j = 0; j < height; j++) {
+                atta::vec2 start{bg->scale.x / 2, bg->scale.y / 2};
+                atta::vec2 pos = atta::vec2(bg->position) - start + atta::vec2((i + 0.5f) / relW, (j + 0.5f) / relH);
+                atta::vec2 force = getForceField(pos);
+
+                float value = log(log(atta::length(force) + 1)*2+1);
+                if (value > 1)
+                    value = 1;
+                float r, g, b;
+                getHeatMapColor(value, &r, &g, &b);
+
+                unsigned index = (i + (height - 1 - j) * width) * 4;
+                data[index + 0] = 255 * r;
+                data[index + 1] = 255 * g;
+                data[index + 2] = 255 * b;
+                data[index + 3] = 255;
+            }
+        _bgImage->update();
+    }
 }
 
 #include "projectScriptUI.cpp"
