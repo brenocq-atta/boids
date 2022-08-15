@@ -50,4 +50,4 @@ jobs:
         working-directory: atta
         run: |
           ./scripts/build.sh --type web_module --static /home/runner/work/boids/boids${{matrix.config.project-file}}
-          gsutil cp build/bin/* gs://${{matrix.config.bucket-path}}
+          gsutil cp build/web_module-release-static/bin/* gs://${{matrix.config.bucket-path}}
