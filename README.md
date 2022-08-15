@@ -66,6 +66,7 @@ The following parameters can be changed from the UI:
 - Inspect position/velocity plot of selected boid.
 
 ## References
-- Craig Reynolds. **Flocks, herds and schools: A distributed behavioral model.** SIGGRAPH 87.
-- [Craig Reynolds' website](https://www.red3d.com/cwr/boids/).
-- [The Coding Train coding challange](https://www.youtube.com/watch?v=mhjuuHl6qHM).
+- Craig Reynolds. **Flocks, herds and schools: A distributed behavioral model.** SIGGRAPH 87
+- [Craig Reynolds' website](https://www.red3d.com/cwr/boids/)
+- [Sebastian Legue implementation](https://www.youtube.com/watch?v=bqtqltqcQhw)
+- [The Coding Train coding challange](https://www.youtube.com/watch?v=mhjuuHl6qHM)

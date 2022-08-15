@@ -192,8 +192,8 @@ void Project::updateBackground() {
         return;
 
     static cmp::Transform* bg = background.get<cmp::Transform>();
-    float relW = 30;
-    float relH = 30;
+    float relW = 10;
+    float relH = 10;
     uint32_t width = bg->scale.x * relW;
     uint32_t height = bg->scale.y * relH;
     bool shouldUpdate = false;

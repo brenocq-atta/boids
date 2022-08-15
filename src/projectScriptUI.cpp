@@ -76,7 +76,9 @@ void Project::boidParemeters() {
     ImGui::SameLine();
 
     static bool showViewRadius = false;
-    ImGui::Checkbox("Show##showViewRadius", &showViewRadius);
+    if(ImGui::Checkbox("Show##showViewRadius", &showViewRadius) && !showViewRadius)
+        gfx::Drawer::clear<gfx::Drawer::Line>("boidView");
+        
     if (showViewRadius) {
         if (_running) {
             // Clear lines

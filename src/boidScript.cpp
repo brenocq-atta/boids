@@ -87,6 +87,7 @@ atta::vec2 BoidScript::flockCentering(cmp::Entity entity, const std::vector<atta
 }
 
 atta::vec2 BoidScript::getNeighbourVec(cmp::Entity entity, cmp::Entity neighbour) {
+    // Calculate vector from entity to neighbour with noise
     cmp::Transform* t = entity.get<cmp::Transform>();
     cmp::Transform* tn = neighbour.get<cmp::Transform>();
 
