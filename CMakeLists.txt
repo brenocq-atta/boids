@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(boids VERSION 1.0.0 LANGUAGES CXX)
-find_package(atta 0.1.0.0 REQUIRED)
+find_package(atta 0.2.0.0 REQUIRED)
 
 atta_add_target(project_base "src/forceField.cpp")
 
