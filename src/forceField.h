@@ -6,7 +6,6 @@
 //--------------------------------------------------
 #ifndef FORCE_FIELD_H
 #define FORCE_FIELD_H
-#include <atta/pch.h>
 
 atta::vec2 getForceField(atta::vec2 position);
 

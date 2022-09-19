@@ -6,7 +6,6 @@
 //--------------------------------------------------
 #ifndef COMMON_H
 #define COMMON_H
-#include "settingsComponent.h"
 #include <atta/component/interface.h>
 
 namespace cmp = atta::component;

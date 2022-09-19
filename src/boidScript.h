@@ -6,7 +6,6 @@
 //--------------------------------------------------
 #ifndef BOID_SCRIPT_H
 #define BOID_SCRIPT_H
-#include <atta/pch.h>
 #include <atta/script/script.h>
 
 namespace cmp = atta::component;

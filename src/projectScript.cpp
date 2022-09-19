@@ -6,6 +6,7 @@
 //--------------------------------------------------
 #include "projectScript.h"
 #include "boidComponent.h"
+#include "settingsComponent.h"
 #include "common.h"
 #include "forceField.h"
 #include <atta/component/components/material.h>

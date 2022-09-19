@@ -6,7 +6,6 @@
 //--------------------------------------------------
 #ifndef PROJECT_SCRIPT_H
 #define PROJECT_SCRIPT_H
-#include <atta/pch.h>
 #include <atta/resource/resources/image.h>
 #include <atta/script/projectScript.h>
 

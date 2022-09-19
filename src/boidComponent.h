@@ -7,7 +7,6 @@
 #ifndef BOID_COMPONENT_H
 #define BOID_COMPONENT_H
 #include <atta/component/interface.h>
-#include <atta/pch.h>
 
 namespace cmp = atta::component;
 
